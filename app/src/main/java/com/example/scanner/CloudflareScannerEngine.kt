@@ -270,10 +270,13 @@ object CloudflareScannerEngine {
                     }
                 }
                 
-                // Fallback to "cloudflare.com" handshake if custom handshake wasn't done, or if it failed
+                // Fallback to handshake if custom handshake wasn't done, or if it failed
                 if (!handshakeSuccess) {
                     rawSocket = Socket()
-                    rawSocket.connect(address, timeoutMs)
+                    var connectLatency = 0L
+                    connectLatency = measureTimeMillis {
+                        rawSocket.connect(address, timeoutMs)
+                    }
                     sslSocket = trustAllSslSocketFactory.createSocket(
                         rawSocket,
                         cfIp.ip,
@@ -283,13 +286,17 @@ object CloudflareScannerEngine {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                         try {
                             val sslParams = sslSocket.sslParameters
-                            sslParams.serverNames = listOf(javax.net.ssl.SNIHostName("cloudflare.com"))
+                            val fallbackSni = if (!sniHost.isNullOrEmpty()) sniHost else "cloudflare.com"
+                            sslParams.serverNames = listOf(javax.net.ssl.SNIHostName(fallbackSni))
                             sslSocket.sslParameters = sslParams
                         } catch (ignored: Exception) {}
                     }
                     sslSocket.soTimeout = timeoutMs
                     sslSocket.startHandshake()
                     handshakeSuccess = true
+                    
+                    // Since fallback did a new connection, latency is the physical TCP connection time of this fallback connection
+                    latency = connectLatency
                 }
             }
         } catch (e: Exception) {
@@ -429,5 +436,55 @@ object CloudflareScannerEngine {
         }
 
         results.filter { it.isClean }.sortedBy { it.latency }
+    }
+
+    fun isIpInCidr(ip: String, cidr: String): Boolean {
+        try {
+            val parts = cidr.split("/")
+            if (parts.size != 2) return false
+            val baseIp = parts[0]
+            val maskBits = parts[1].toIntOrNull() ?: 24
+            
+            val ipLong = ipToLong(ip)
+            val baseLong = ipToLong(baseIp)
+            
+            if (ipLong == 0L || baseLong == 0L) return false
+            
+            val mask = if (maskBits == 0) 0L else (-1L shl (32 - maskBits)) and 0xFFFFFFFFL
+            return (ipLong and mask) == (baseLong and mask)
+        } catch (e: Exception) {
+            return false
+        }
+    }
+
+    fun isCloudflareIp(ip: String): Boolean {
+        return cloudflareSubnets.any { cidr -> isIpInCidr(ip, cidr) }
+    }
+
+    suspend fun isCloudflareHostOrIp(hostOrIp: String): Boolean = withContext(Dispatchers.IO) {
+        if (hostOrIp.isBlank()) return@withContext false
+        val cleanHost = hostOrIp.trim().lowercase(java.util.Locale.US)
+        
+        // Quick string check
+        if (cleanHost.contains("cloudflare")) {
+            return@withContext true
+        }
+        
+        // If it's a domain/IP, try to resolve it and check the resulting IP addresses
+        try {
+            val addresses = java.net.InetAddress.getAllByName(cleanHost)
+            for (address in addresses) {
+                val ip = address.hostAddress ?: continue
+                if (isCloudflareIp(ip)) {
+                    return@withContext true
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback: If DNS resolution fails, check if string itself matches IPv4 format
+            if (cleanHost.matches(Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"""))) {
+                return@withContext isCloudflareIp(cleanHost)
+            }
+        }
+        return@withContext false
     }
 }

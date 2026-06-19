@@ -52,7 +52,26 @@ data class VlessTrojanConfig(
     val remark: String
 ) {
     fun copyWithIp(ip: String): String {
-        val queryPart = if (query.isNotEmpty()) "?$query" else ""
+        var updatedQuery = query
+        if (isValidDomain(host)) {
+            val params = if (query.isEmpty()) emptyList<String>() else query.split("&")
+            val hasSni = params.any { it.trim().substringBefore("=").lowercase(Locale.US) == "sni" }
+            val hasHost = params.any { it.trim().substringBefore("=").lowercase(Locale.US) == "host" }
+            
+            val addedParams = mutableListOf<String>()
+            if (!hasSni) {
+                addedParams.add("sni=$host")
+            }
+            if (!hasHost) {
+                addedParams.add("host=$host")
+            }
+            
+            if (addedParams.isNotEmpty()) {
+                val suffix = addedParams.joinToString("&")
+                updatedQuery = if (query.isEmpty()) suffix else "$query&$suffix"
+            }
+        }
+        val queryPart = if (updatedQuery.isNotEmpty()) "?$updatedQuery" else ""
         val remarkPart = if (remark.isNotEmpty()) "#$remark" else ""
         return "$scheme://$credentials@$ip:$port$queryPart$remarkPart"
     }
@@ -127,6 +146,28 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     // --- VLESS / TROJAN PROFILE SUPPORT ---
     private val _configInput = MutableStateFlow("")
     val configInput = _configInput.asStateFlow()
+
+    private val _isCloudflareConfig = MutableStateFlow<Boolean?>(null)
+    val isCloudflareConfig = _isCloudflareConfig.asStateFlow()
+
+    private var detectionJob: Job? = null
+
+    private fun detectCloudflareNetwork(configText: String) {
+        detectionJob?.cancel()
+        if (configText.isBlank()) {
+            _isCloudflareConfig.value = null
+            return
+        }
+        detectionJob = viewModelScope.launch(Dispatchers.Default) {
+            val parsed = parseVlessTrojanConfig(configText)
+            if (parsed == null) {
+                _isCloudflareConfig.value = null
+            } else {
+                val isCf = CloudflareScannerEngine.isCloudflareHostOrIp(parsed.host)
+                _isCloudflareConfig.value = isCf
+            }
+        }
+    }
 
     // --- CUSTOM MAIN PORT SCANNER ---
     private val _customPort = MutableStateFlow(443)
@@ -230,6 +271,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateConfigInput(value: String) {
         _configInput.value = value
+        detectCloudflareNetwork(value)
     }
 
     fun updateCustomPort(port: Int) {

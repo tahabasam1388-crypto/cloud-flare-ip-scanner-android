@@ -25,6 +25,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -90,6 +92,7 @@ fun ScannerMainScreen(
     val concurrency by viewModel.concurrency.collectAsState()
     val ipPoolSize by viewModel.ipPoolSizeToGenerate.collectAsState()
     val configInput by viewModel.configInput.collectAsState()
+    val isCloudflareConfig by viewModel.isCloudflareConfig.collectAsState()
     val customPort by viewModel.customPort.collectAsState()
     val isSpeedTestEnabled by viewModel.isSpeedTestEnabled.collectAsState()
     val speedTestLimit by viewModel.speedTestLimit.collectAsState()
@@ -427,6 +430,27 @@ fun ScannerMainScreen(
                                     text = if (isPersian) "✓ معتبر: پروتکل ${parsedConfig.scheme.uppercase()} روی پورت ${parsedConfig.port} استخراج شد" else "✓ Valid: ${parsedConfig.scheme.uppercase()} configuration parsed on Port ${parsedConfig.port}",
                                     style = MaterialTheme.typography.bodySmall.copy(color = AccentTeal, fontWeight = FontWeight.Bold)
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                when (isCloudflareConfig) {
+                                    true -> {
+                                        Text(
+                                            text = if (isPersian) "☁️ این کانفیگ متعلق به کلودفلر (شبکه هدف) است." else "☁️ This configuration belongs to Cloudflare (target network).",
+                                            style = MaterialTheme.typography.bodySmall.copy(color = AccentCyan, fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                    false -> {
+                                        Text(
+                                            text = if (isPersian) "⚠️ هشدار: آدرس کانفیگ متعلق به کلودفلر نیست!" else "⚠️ Warning: Config address does NOT belong to Cloudflare!",
+                                            style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFF59E0B), fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                    null -> {
+                                        Text(
+                                            text = if (isPersian) "⏳ در حال بررسی تعلق آدرس کانفیگ به کلودفلر..." else "⏳ Checking address Cloudflare status...",
+                                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                        )
+                                    }
+                                }
                             } else if (configInput.isNotEmpty()) {
                                 Text(
                                     text = if (isPersian) "⚠️ فرمت نامعتبر! اسکن با پورت پیش‌فرض انجام می‌شود." else "⚠️ Invalid format! Scanning fallback to the main screen port.",
@@ -587,9 +611,11 @@ fun LiveScannerSection(
     context: Context,
     isPersian: Boolean = false
 ) {
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
         // --- INPUT SEGMENT WITH MASSIVE CAPACITY ---
@@ -926,7 +952,6 @@ fun LiveScannerSection(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBg)
                     .padding(24.dp),
@@ -977,14 +1002,13 @@ fun LiveScannerSection(
                 }
             }
 
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .border(1.dp, SurfaceVariantBg, RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                     .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
             ) {
-                items(activeScanResults) { result ->
+                activeScanResults.forEach { result ->
                     ResultRow(
                         ip = result.ip,
                         latency = result.latency,
