@@ -1,21 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# ⚡ Cloudflare Clean IP Scanner & Speed Tester
 
-# Run and deploy your AI Studio app
+یک ابزار فوق‌العاده سریع، هوشمند و مدرن برای اسکن و یافتن آی‌پی‌های تمیز (Clean IP) کلودفلر، مجهز به سیستم تست سرعت داخلی با پشتیبانی از کانفیگ‌های Vless و Trojan یا بدون نیاز به آن‌ها!
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/4917a294-5f69-42c1-8473-fe3cd274cafc
+## 🚀 چرا این اپلیکیشن؟
 
-## Run Locally
+اگر از قطع و وصل شدن اینترنت، سرعت پایین ریپوزیتورها یا اختلال در کانکشن‌های خود خسته شده‌اید، این برنامه نجات‌دهنده شماست. این ابزار با بررسی دقیق و سریع رنج‌های آی‌پی کلودفلر، باکیفیت‌ترین و زنده‌ترین آی‌پی‌ها را در اختیارتان می‌گذارد.
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+### ✨ قابلیت‌های کلیدی:
+* **اسکن دوگانه:** قابلیت اسکن آی‌پی‌ها هم با کانفیگ‌های vless / trojan و هم به صورت خام (بدون کانفیگ).
+* **تست سرعت آنی و هوشمند:** مجهز به ابزار سنجش سرعت داخلی.
+* **رابط کاربری روان و بهینه:** طراحی شده برای بالاترین بازدهی و کمترین مصرف منابع سیستم.
+* **دقت بالا:** فیلتر کردن آی‌پی‌های مسدود یا پینگ بالا در کوتاه‌ترین زمان ممکن.
 
+---
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
+## ⚡ نکته بسیار مهم درباره تست سرعت (Speed Test)
+
+> ⚠️ **توجه داشته باشید:** فرآیند تست سرعت در این اپلیکیشن در **یک بازه زمانی بسیار کوتاه و برق‌آسا** انجام می‌شود. هدف اصلی این تست، دانلود فایل‌های سنگین یا سنجش پهنای باند نهایی شما نیست؛ بلکه صرفاً برای **راستی‌آزمایی پایداری، زنده بودن (Alive) و یافتن سریع‌ترین آی‌پی‌های سالم** طراحی شده است تا وقت شما تلف نشود.
+
+---
+
+## 🛠 نحوه استفاده
+
+1. به بخش **Releases** بروید و آخرین نسخه برنامه را دانلود کنید.
+2. برنامه را اجرا کرده و نوع اسکن خود (با کانفیگ یا بدون کانفیگ) را انتخاب کنید.
+3. دکمه Start را بزنید و در چند ثانیه، لیست آی‌پی‌های تمیز را تحویل بگیرید!
+
